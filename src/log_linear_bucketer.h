@@ -35,18 +35,10 @@ class LogLinearBucketer {
   // Returns the bucket index for a given value.
   // The result is clamped to [0, Buckets-1].
   static constexpr size_t bucket(size_t value) noexcept {
-    // Handle zero value
-    if (value == 0) {
-      return 0;
-    }
-
     // Scale the value
     size_t scaled = value / Scale;
-    if (scaled == 0) {
-      return 0;
-    }
 
-    // Linear phase: small values map 1:1 to bucket numbers
+    // Linear phase: small values (including 0) map 1:1 to bucket numbers
     if (scaled < kLinearThreshold) {
       return std::min(scaled, Buckets - 1);
     }

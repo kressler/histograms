@@ -163,6 +163,24 @@ TEST_CASE("LogLinearBucketer bucket boundaries", "[boundaries]") {
       }
     }
   }
+
+  SECTION("Boundary +1 and -1 mapping in log-linear range") {
+    auto boundaries = B::bucket_boundaries();
+    // Start from bucket 8 to ensure we're in log-linear range
+    for (size_t i = 8; i < boundaries.size(); ++i) {
+      size_t boundary = boundaries[i];
+
+      // boundary + 1 should map to the same bucket (still in bucket i)
+      if (i + 1 < boundaries.size() && boundary + 1 < boundaries[i + 1]) {
+        REQUIRE(B::bucket(boundary + 1) == i);
+      }
+
+      // boundary - 1 should map to previous bucket (bucket i-1)
+      if (i > 0 && boundary > 0) {
+        REQUIRE(B::bucket(boundary - 1) == i - 1);
+      }
+    }
+  }
 }
 
 TEST_CASE("LogLinearBucketer edge cases", "[edge-cases]") {
@@ -231,10 +249,24 @@ TEST_CASE("LogLinearBucketer with different SignificantBits",
     REQUIRE(B::bucket(0) == 0);
     REQUIRE(B::bucket(15) == 15);
 
-    // Log-linear: 8 subdivisions per power-of-2 range
-    REQUIRE(B::bucket(16) == 16);
+    // Log-linear: 8 subdivisions per power-of-2 range [16, 32)
+    REQUIRE(B::bucket(16) == 16);  // Subdivision 0: [16, 18)
     REQUIRE(B::bucket(17) == 16);
-    REQUIRE(B::bucket(18) == 17);
+    REQUIRE(B::bucket(18) == 17);  // Subdivision 1: [18, 20)
+    REQUIRE(B::bucket(19) == 17);
+    REQUIRE(B::bucket(20) == 18);  // Subdivision 2: [20, 22)
+    REQUIRE(B::bucket(21) == 18);
+    REQUIRE(B::bucket(22) == 19);  // Subdivision 3: [22, 24)
+    REQUIRE(B::bucket(23) == 19);
+    REQUIRE(B::bucket(24) == 20);  // Subdivision 4: [24, 26)
+    REQUIRE(B::bucket(25) == 20);
+    REQUIRE(B::bucket(26) == 21);  // Subdivision 5: [26, 28)
+    REQUIRE(B::bucket(27) == 21);
+    REQUIRE(B::bucket(28) == 22);  // Subdivision 6: [28, 30)
+    REQUIRE(B::bucket(29) == 22);
+    REQUIRE(B::bucket(30) == 23);  // Subdivision 7: [30, 32)
+    REQUIRE(B::bucket(31) == 23);
+    REQUIRE(B::bucket(32) == 24);  // Next range starts
   }
 
   SECTION("SignificantBits = 4") {
@@ -244,9 +276,28 @@ TEST_CASE("LogLinearBucketer with different SignificantBits",
     REQUIRE(B::bucket(0) == 0);
     REQUIRE(B::bucket(31) == 31);
 
-    // Log-linear: 16 subdivisions per power-of-2 range
-    REQUIRE(B::bucket(32) == 32);
+    // Log-linear: 16 subdivisions per power-of-2 range [32, 64)
+    REQUIRE(B::bucket(32) == 32);  // Subdivision 0: [32, 34)
     REQUIRE(B::bucket(33) == 32);
+    REQUIRE(B::bucket(34) == 33);  // Subdivision 1: [34, 36)
+    REQUIRE(B::bucket(35) == 33);
+    REQUIRE(B::bucket(36) == 34);  // Subdivision 2: [36, 38)
+    REQUIRE(B::bucket(37) == 34);
+    REQUIRE(B::bucket(38) == 35);  // Subdivision 3: [38, 40)
+    REQUIRE(B::bucket(39) == 35);
+    REQUIRE(B::bucket(40) == 36);  // Subdivision 4: [40, 42)
+    REQUIRE(B::bucket(42) == 37);  // Subdivision 5: [42, 44)
+    REQUIRE(B::bucket(44) == 38);  // Subdivision 6: [44, 46)
+    REQUIRE(B::bucket(46) == 39);  // Subdivision 7: [46, 48)
+    REQUIRE(B::bucket(48) == 40);  // Subdivision 8: [48, 50)
+    REQUIRE(B::bucket(50) == 41);  // Subdivision 9: [50, 52)
+    REQUIRE(B::bucket(52) == 42);  // Subdivision 10: [52, 54)
+    REQUIRE(B::bucket(54) == 43);  // Subdivision 11: [54, 56)
+    REQUIRE(B::bucket(56) == 44);  // Subdivision 12: [56, 58)
+    REQUIRE(B::bucket(58) == 45);  // Subdivision 13: [58, 60)
+    REQUIRE(B::bucket(60) == 46);  // Subdivision 14: [60, 62)
+    REQUIRE(B::bucket(62) == 47);  // Subdivision 15: [62, 64)
+    REQUIRE(B::bucket(64) == 48);  // Next range starts
   }
 }
 
