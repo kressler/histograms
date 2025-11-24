@@ -36,7 +36,7 @@ class LogLinearBucketer {
   // The result is clamped to [0, Buckets-1].
   static constexpr size_t bucket(size_t value) noexcept {
     // Scale the value
-    size_t scaled = value / Scale;
+    const size_t scaled = value / Scale;
 
     // Linear phase: small values (including 0) map 1:1 to bucket numbers
     if (scaled < kLinearThreshold) {
@@ -45,17 +45,17 @@ class LogLinearBucketer {
 
     // Log-linear phase: use bit manipulation to compute bucket
     // Find position of most significant bit (0-indexed from right)
-    size_t msb_pos = 63 - std::countl_zero(scaled);
+    const size_t msb_pos = 63 - std::countl_zero(scaled);
 
     // Major index: which power-of-2 range we're in
-    size_t major_index = msb_pos - (SignificantBits + 1);
+    const size_t major_index = msb_pos - (SignificantBits + 1);
 
     // Extract the next SignificantBits after the MSB
-    size_t shift = msb_pos - SignificantBits;
-    size_t minor_index = (scaled >> shift) & kMinorMask;
+    const size_t shift = msb_pos - SignificantBits;
+    const size_t minor_index = (scaled >> shift) & kMinorMask;
 
     // Combine major and minor indices to get bucket number
-    size_t result =
+    const size_t result =
         kLinearThreshold + (major_index << SignificantBits) + minor_index;
 
     // Clamp to maximum bucket
@@ -81,13 +81,13 @@ class LogLinearBucketer {
            minor < (size_t{1} << SignificantBits) && bucket_num < Buckets;
            ++minor) {
         // Compute the MSB position for this major index
-        size_t msb_pos = major + SignificantBits + 1;
+        const size_t msb_pos = major + SignificantBits + 1;
 
         // Base value: 2^msb_pos
-        size_t base = size_t{1} << msb_pos;
+        const size_t base = size_t{1} << msb_pos;
 
         // Offset within this power-of-2 range based on minor index
-        size_t offset = minor << (msb_pos - SignificantBits);
+        const size_t offset = minor << (msb_pos - SignificantBits);
 
         boundaries.push_back((base + offset) * Scale);
         ++bucket_num;
