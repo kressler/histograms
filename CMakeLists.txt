@@ -55,6 +55,9 @@ endif()
 # Enable testing
 enable_testing()
 
+# Add Catch2 testing framework
+add_subdirectory(third_party/Catch2)
+
 # Clang-format target
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 if(CLANG_FORMAT_EXECUTABLE)
