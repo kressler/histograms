@@ -5,6 +5,7 @@
 #ifndef HISTOGRAMS_SRC_HISTOGRAM_H_
 #define HISTOGRAMS_SRC_HISTOGRAM_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <utility>
 #include <vector>
@@ -79,6 +80,96 @@ class Histogram {
       total += count;
     }
     return total;
+  }
+
+  // Computes percentile estimates for the given percentile values.
+  // Uses linear interpolation within buckets to estimate percentiles.
+  //
+  // Parameters:
+  //   percentiles: Vector of percentile values in the range [0.0, 1.0]
+  //                (e.g., 0.5 for median, 0.95 for 95th percentile)
+  //
+  // Returns:
+  //   Vector of estimated percentile values (same order as input)
+  //   Returns empty vector if histogram is empty
+  //
+  // Example:
+  //   auto p = hist.percentiles({0.5, 0.95, 0.99});  // median, p95, p99
+  std::vector<double> percentiles(
+      const std::vector<double>& percentiles_input) const {
+    std::vector<double> result;
+    result.reserve(percentiles_input.size());
+
+    const size_t total = total_count();
+    if (total == 0) {
+      // Empty histogram - return empty result
+      return result;
+    }
+
+    // Build cumulative counts
+    std::vector<size_t> cumulative;
+    cumulative.reserve(data_.size());
+    size_t cumsum = 0;
+    for (const size_t count : data_) {
+      cumsum += count;
+      cumulative.push_back(cumsum);
+    }
+
+    // Compute each percentile
+    for (const double p : percentiles_input) {
+      // Clamp percentile to [0, 1] range
+      const double clamped_p = std::max(0.0, std::min(1.0, p));
+
+      // Calculate target count (position in sorted observations)
+      // For p=0, we want the first observation; for p=1, we want the last
+      const double target_count = clamped_p * static_cast<double>(total);
+
+      // Find bucket containing this count
+      size_t bucket_idx = 0;
+      if (target_count > 0.0) {
+        // Find first bucket with cumulative count >= target
+        for (size_t i = 0; i < cumulative.size(); ++i) {
+          if (static_cast<double>(cumulative[i]) >= target_count) {
+            bucket_idx = i;
+            break;
+          }
+        }
+      } else {
+        // For p=0, find first non-empty bucket
+        for (size_t i = 0; i < data_.size(); ++i) {
+          if (data_[i] > 0) {
+            bucket_idx = i;
+            break;
+          }
+        }
+      }
+
+      // Interpolate within bucket
+      const size_t lower_bound = boundaries_[bucket_idx];
+      const size_t count_before =
+          bucket_idx > 0 ? cumulative[bucket_idx - 1] : 0;
+      const size_t count_in_bucket = data_[bucket_idx];
+
+      if (count_in_bucket == 0) {
+        // Empty bucket - just return lower bound
+        result.push_back(static_cast<double>(lower_bound));
+      } else if (bucket_idx + 1 < boundaries_.size()) {
+        // Interpolate between lower and upper bounds
+        const size_t upper_bound = boundaries_[bucket_idx + 1];
+        const double position_in_bucket =
+            (target_count - static_cast<double>(count_before)) /
+            static_cast<double>(count_in_bucket);
+        const double estimated_value =
+            static_cast<double>(lower_bound) +
+            position_in_bucket * static_cast<double>(upper_bound - lower_bound);
+        result.push_back(estimated_value);
+      } else {
+        // Last bucket - return lower bound
+        result.push_back(static_cast<double>(lower_bound));
+      }
+    }
+
+    return result;
   }
 
  private:

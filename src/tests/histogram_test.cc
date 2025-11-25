@@ -370,3 +370,199 @@ TEST_CASE("Histogram data() with include_empty parameter",
     REQUIRE(sum_all == 6);  // 1 + 3 + 2
   }
 }
+
+TEST_CASE("Histogram percentiles basic functionality",
+          "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Empty histogram returns empty result") {
+    auto result = hist.percentiles({0.5, 0.95, 0.99});
+    REQUIRE(result.empty());
+  }
+
+  SECTION("Single observation") {
+    hist.observe(10);
+    auto result = hist.percentiles({0.0, 0.5, 1.0});
+
+    REQUIRE(result.size() == 3);
+    // All percentiles should be near the single value
+    REQUIRE(result[0] >= 10.0);
+    REQUIRE(result[1] >= 10.0);
+    REQUIRE(result[2] >= 10.0);
+  }
+
+  SECTION("Multiple observations in same bucket") {
+    // Values 8 and 9 both map to bucket 8
+    hist.observe(8);
+    hist.observe(9);
+    auto result = hist.percentiles({0.5});
+
+    REQUIRE(result.size() == 1);
+    // Median should be between 8 and 10 (next bucket boundary)
+    REQUIRE(result[0] >= 8.0);
+    REQUIRE(result[0] < 10.0);
+  }
+}
+
+TEST_CASE("Histogram percentiles with uniform distribution",
+          "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Observations spread across buckets") {
+    // Observe values 0-99 (100 observations)
+    for (size_t i = 0; i < 100; ++i) {
+      hist.observe(i);
+    }
+
+    auto result = hist.percentiles({0.0, 0.25, 0.5, 0.75, 1.0});
+
+    REQUIRE(result.size() == 5);
+
+    // p0 should be near 0
+    REQUIRE(result[0] <= 5.0);
+
+    // p25 should be roughly 25
+    REQUIRE(result[1] >= 15.0);
+    REQUIRE(result[1] <= 35.0);
+
+    // p50 (median) should be roughly 50
+    REQUIRE(result[2] >= 40.0);
+    REQUIRE(result[2] <= 60.0);
+
+    // p75 should be roughly 75
+    REQUIRE(result[3] >= 65.0);
+    REQUIRE(result[3] <= 85.0);
+
+    // p100 should be high
+    REQUIRE(result[4] >= 90.0);
+  }
+}
+
+TEST_CASE("Histogram percentiles edge cases", "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Percentiles outside [0, 1] are clamped") {
+    hist.observe(50, 100);
+
+    auto result = hist.percentiles({-0.5, 1.5, 2.0});
+
+    REQUIRE(result.size() == 3);
+    // All should be clamped and return valid values
+    REQUIRE(result[0] >= 0.0);
+    REQUIRE(result[1] >= 0.0);
+    REQUIRE(result[2] >= 0.0);
+  }
+
+  SECTION("Exact percentile boundaries") {
+    // 100 observations at value 10
+    hist.observe(10, 100);
+
+    auto result = hist.percentiles({0.0, 1.0});
+
+    REQUIRE(result.size() == 2);
+    // Both should be in the same bucket
+    REQUIRE(result[0] >= 10.0);
+    REQUIRE(result[1] >= 10.0);
+  }
+
+  SECTION("Many percentiles at once") {
+    for (size_t i = 0; i < 50; ++i) {
+      hist.observe(i);
+    }
+
+    std::vector<double> percentiles;
+    for (int i = 0; i <= 100; i += 10) {
+      percentiles.push_back(i / 100.0);
+    }
+
+    auto result = hist.percentiles(percentiles);
+
+    REQUIRE(result.size() == percentiles.size());
+    // Results should be monotonically increasing
+    for (size_t i = 1; i < result.size(); ++i) {
+      REQUIRE(result[i] >= result[i - 1]);
+    }
+  }
+}
+
+TEST_CASE("Histogram percentiles with skewed distribution",
+          "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Most observations at low values") {
+    // 90 observations at 5, 10 observations at 100
+    hist.observe(5, 90);
+    hist.observe(100, 10);
+
+    auto result = hist.percentiles({0.5, 0.9, 0.95});
+
+    REQUIRE(result.size() == 3);
+
+    // p50 should be in the low bucket (90% of data is there)
+    REQUIRE(result[0] < 10.0);
+
+    // p90 should still be in or near the low bucket
+    REQUIRE(result[1] < 20.0);
+
+    // p95 should be in the high bucket
+    REQUIRE(result[2] > 50.0);
+  }
+}
+
+TEST_CASE("Histogram percentiles realistic scenario",
+          "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Latency percentiles") {
+    // Simulate latency distribution (mostly low, some high outliers)
+    for (int i = 0; i < 100; ++i) {
+      hist.observe(10);  // 100 fast requests
+    }
+    for (int i = 0; i < 10; ++i) {
+      hist.observe(50);  // 10 medium requests
+    }
+    hist.observe(200);  // 1 slow request
+
+    auto result = hist.percentiles({0.5, 0.9, 0.95, 0.99});
+
+    REQUIRE(result.size() == 4);
+
+    // p50 should be around 10 (most requests are fast)
+    REQUIRE(result[0] >= 8.0);
+    REQUIRE(result[0] <= 15.0);
+
+    // p90 should still be relatively low
+    REQUIRE(result[1] >= 8.0);
+    REQUIRE(result[1] <= 30.0);
+
+    // p95 should start capturing medium latency
+    REQUIRE(result[2] >= 10.0);
+    REQUIRE(result[2] <= 60.0);
+
+    // p99 should capture the slow request
+    REQUIRE(result[3] >= 50.0);
+  }
+}
+
+TEST_CASE("Histogram percentiles interpolation accuracy",
+          "[histogram][percentiles]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Known distribution for interpolation test") {
+    // 10 observations in bucket starting at 10 (values would be ~10-12)
+    hist.observe(10, 10);
+
+    auto result = hist.percentiles({0.5});
+
+    REQUIRE(result.size() == 1);
+    // Median should be interpolated within the bucket [10, 12)
+    REQUIRE(result[0] >= 10.0);
+    REQUIRE(result[0] < 12.0);
+  }
+}
