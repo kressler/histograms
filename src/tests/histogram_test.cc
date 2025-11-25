@@ -293,3 +293,80 @@ TEST_CASE("Histogram realistic usage scenario", "[histogram][realistic]") {
     REQUIRE(sum == latencies.size());
   }
 }
+
+TEST_CASE("Histogram data() with include_empty parameter",
+          "[histogram][include_empty]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist;
+
+  SECTION("Default behavior filters zero-count buckets") {
+    hist.observe(10);
+    auto result = hist.data();
+
+    // Should only include bucket with count > 0
+    REQUIRE(result.size() == 1);
+    REQUIRE(result[0].first == 10);
+    REQUIRE(result[0].second == 1);
+  }
+
+  SECTION("include_empty=false filters zero-count buckets") {
+    hist.observe(10);
+    auto result = hist.data(false);
+
+    // Same as default
+    REQUIRE(result.size() == 1);
+  }
+
+  SECTION("include_empty=true includes all buckets") {
+    hist.observe(10);
+    auto result = hist.data(true);
+
+    // Should include all buckets from the bucketer
+    auto boundaries = Bucketer::bucket_boundaries();
+    REQUIRE(result.size() == boundaries.size());
+
+    // First bucket should be 0 with count 0
+    REQUIRE(result[0].first == 0);
+    REQUIRE(result[0].second == 0);
+
+    // Bucket 10 should have count 1
+    bool found = false;
+    for (const auto& [boundary, count] : result) {
+      if (boundary == 10) {
+        REQUIRE(count == 1);
+        found = true;
+      }
+    }
+    REQUIRE(found);
+  }
+
+  SECTION("include_empty=true with multiple observations") {
+    hist.observe(5);
+    hist.observe(10, 3);
+    hist.observe(20, 2);
+
+    auto result_filtered = hist.data(false);
+    auto result_all = hist.data(true);
+
+    // Filtered should only have 3 buckets
+    REQUIRE(result_filtered.size() == 3);
+
+    // All should have all boundaries
+    auto boundaries = Bucketer::bucket_boundaries();
+    REQUIRE(result_all.size() == boundaries.size());
+
+    // Total counts should be same
+    size_t sum_filtered = 0;
+    for (const auto& [_, count] : result_filtered) {
+      sum_filtered += count;
+    }
+
+    size_t sum_all = 0;
+    for (const auto& [_, count] : result_all) {
+      sum_all += count;
+    }
+
+    REQUIRE(sum_filtered == sum_all);
+    REQUIRE(sum_all == 6);  // 1 + 3 + 2
+  }
+}

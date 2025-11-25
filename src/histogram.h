@@ -42,21 +42,22 @@ class Histogram {
   //   n: The count to add (default: 1)
   void observe(size_t value, size_t n = 1) {
     const size_t bucket_idx = Bucketer::bucket(value);
-    if (bucket_idx < data_.size()) {
-      data_[bucket_idx] += n;
-    }
+    data_[bucket_idx] += n;
   }
 
   // Returns the histogram data as a vector of (boundary, count) pairs.
-  // Only buckets with non-zero counts are included.
+  //
+  // Parameters:
+  //   include_empty: If true, include buckets with zero counts (default: false)
   //
   // Returns:
   //   Vector of pairs where each pair is (bucket_lower_bound, count)
-  std::vector<std::pair<size_t, size_t>> data() const {
+  std::vector<std::pair<size_t, size_t>> data(
+      bool include_empty = false) const {
     std::vector<std::pair<size_t, size_t>> result;
 
     for (size_t i = 0; i < data_.size(); ++i) {
-      if (data_[i] > 0) {
+      if (include_empty || data_[i] > 0) {
         result.emplace_back(boundaries_[i], data_[i]);
       }
     }
