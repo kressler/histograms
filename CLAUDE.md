@@ -45,11 +45,30 @@ Template parameter: `<typename Bucketer>`
 
 ## Build & Test
 
-### Configuration
+### Build Directories
+- **Debug builds**: `cmake-build-debug` (default configuration)
+- **Release builds**: `cmake-build-release` (optimized)
+- **ASAN builds**: `cmake-build-asan` (memory debugging)
+
+### Debug Build
 ```bash
-cmake -B build
-cmake --build build
-ctest --test-dir build
+cmake -B cmake-build-debug
+cmake --build cmake-build-debug
+ctest --test-dir cmake-build-debug
+```
+
+### Release Build
+```bash
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-release
+ctest --test-dir cmake-build-release
+```
+
+### ASAN Build
+```bash
+cmake -B cmake-build-asan -DENABLE_ASAN=ON
+cmake --build cmake-build-asan
+ctest --test-dir cmake-build-asan
 ```
 
 ### Options
@@ -61,7 +80,7 @@ Automatically formats .cpp/.hpp/.ipp files with clang-format. Located at `.git/h
 
 ### Format Target
 ```bash
-cmake --build build --target format
+cmake --build cmake-build-debug --target format
 ```
 
 ## Development Workflow
@@ -191,7 +210,7 @@ Install destination: `lib/cmake/histograms/`, `include/histograms/`
 
 ### Release checklist
 1. Update version in CMakeLists.txt (write_basic_package_version_file)
-2. Run all tests: `ctest --test-dir build`
+2. Run all tests: `ctest --test-dir cmake-build-release`
 3. Test installation to temporary location
 4. Create git tag: `git tag -a v1.x.x -m "Release 1.x.x"`
 
