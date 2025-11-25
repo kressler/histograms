@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -164,8 +165,8 @@ class Histogram {
             position_in_bucket * static_cast<double>(upper_bound - lower_bound);
         result.push_back(estimated_value);
       } else {
-        // Last bucket - return lower bound
-        result.push_back(static_cast<double>(lower_bound));
+        // Last bucket - no upper bound, return infinity
+        result.push_back(std::numeric_limits<double>::infinity());
       }
     }
 
