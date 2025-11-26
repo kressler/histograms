@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace histograms {
+namespace kressler::histograms {
 
 // LogLinearBucketer implements a log-linear histogram bucketing scheme that
 // maintains a constant number of bits of precision for histogrammed values.
@@ -111,6 +111,6 @@ class LogLinearBucketer {
                 "SignificantBits must be in range (0, 64)");
 };
 
-}  // namespace histograms
+}  // namespace kressler::histograms
 
 #endif  // HISTOGRAMS_SRC_LOG_LINEAR_BUCKETER_H_

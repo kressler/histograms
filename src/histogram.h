@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace histograms {
+namespace kressler::histograms {
 
 // Histogram maintains counts of observations distributed across buckets
 // defined by a Bucketer.
@@ -181,6 +181,6 @@ class Histogram {
   std::vector<size_t> data_;
 };
 
-}  // namespace histograms
+}  // namespace kressler::histograms
 
 #endif  // HISTOGRAMS_SRC_HISTOGRAM_H_

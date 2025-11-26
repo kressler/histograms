@@ -10,8 +10,8 @@
 
 #include "log_linear_bucketer.h"
 
-using histograms::Histogram;
-using histograms::LogLinearBucketer;
+using kressler::histograms::Histogram;
+using kressler::histograms::LogLinearBucketer;
 
 TEST_CASE("Histogram basic functionality", "[histogram][basic]") {
   using Bucketer = LogLinearBucketer<100, 2, 1>;

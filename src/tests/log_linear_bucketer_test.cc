@@ -8,7 +8,7 @@
 #include <limits>
 #include <vector>
 
-using histograms::LogLinearBucketer;
+using kressler::histograms::LogLinearBucketer;
 
 TEST_CASE("LogLinearBucketer basic functionality", "[basic]") {
   using B = LogLinearBucketer<100, 2, 1>;

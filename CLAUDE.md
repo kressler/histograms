@@ -3,7 +3,7 @@
 ## Project Overview
 Header-only C++23 template library for high-performance histogram tracking with log-linear bucketing.
 
-**Namespace**: `histograms`
+**Namespace**: `kressler::histograms`
 **Standard**: C++23
 **Style Guide**: Google C++ Style
 **Testing**: Catch2 v3 (git submodule in `third_party/Catch2`)
