@@ -1,7 +1,7 @@
 // Copyright 2025
 // Tests for LogLinearBucketer
 
-#include "log_linear_bucketer.h"
+#include <histograms/log_linear_bucketer.h>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
