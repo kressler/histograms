@@ -35,6 +35,29 @@ class Histogram {
     data_.resize(boundaries_.size(), 0);
   }
 
+  // Copy constructor - creates a deep copy of another histogram.
+  Histogram(const Histogram& other)
+      : boundaries_(other.boundaries_), data_(other.data_) {}
+
+  // Merges another histogram into this one by summing bucket counts.
+  // The histograms must have identical bucketing (same Bucketer type ensures
+  // this).
+  //
+  // Parameters:
+  //   other: The histogram to merge into this one
+  //
+  // Example:
+  //   Histogram<MyBucketer> hist1, hist2;
+  //   hist1.observe(10);
+  //   hist2.observe(20);
+  //   hist1.merge(hist2);  // hist1 now contains both observations
+  void merge(const Histogram& other) {
+    // Buckets should have the same size since they use the same Bucketer
+    for (size_t i = 0; i < data_.size(); ++i) {
+      data_[i] += other.data_[i];
+    }
+  }
+
   // Records an observation of the given value.
   // The value is mapped to a bucket using Bucketer::bucket(), and the
   // count for that bucket is incremented by n.

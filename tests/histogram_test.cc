@@ -587,3 +587,231 @@ TEST_CASE("Histogram percentiles interpolation accuracy",
     REQUIRE(result[2] > 0);
   }
 }
+
+TEST_CASE("Histogram copy constructor", "[histogram][copy]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+  Histogram<Bucketer> hist1;
+
+  SECTION("Copy empty histogram") {
+    Histogram<Bucketer> hist2(hist1);
+
+    REQUIRE(hist2.total_count() == 0);
+    REQUIRE(hist2.data().empty());
+  }
+
+  SECTION("Copy histogram with observations") {
+    hist1.observe(10, 5);
+    hist1.observe(20, 3);
+    hist1.observe(30, 2);
+
+    Histogram<Bucketer> hist2(hist1);
+
+    // Verify copied histogram has same data
+    REQUIRE(hist2.total_count() == 10);
+
+    auto data1 = hist1.data();
+    auto data2 = hist2.data();
+
+    REQUIRE(data1.size() == data2.size());
+    for (size_t i = 0; i < data1.size(); ++i) {
+      REQUIRE(data1[i].first == data2[i].first);
+      REQUIRE(data1[i].second == data2[i].second);
+    }
+  }
+
+  SECTION("Modifications to copy don't affect original") {
+    hist1.observe(10, 5);
+
+    Histogram<Bucketer> hist2(hist1);
+
+    // Modify the copy
+    hist2.observe(20, 3);
+
+    // Original should be unchanged
+    REQUIRE(hist1.total_count() == 5);
+    REQUIRE(hist2.total_count() == 8);
+
+    auto data1 = hist1.data();
+    auto data2 = hist2.data();
+
+    REQUIRE(data1.size() == 1);
+    REQUIRE(data2.size() == 2);
+  }
+
+  SECTION("Clear on copy doesn't affect original") {
+    hist1.observe(10, 5);
+
+    Histogram<Bucketer> hist2(hist1);
+    hist2.clear();
+
+    REQUIRE(hist1.total_count() == 5);
+    REQUIRE(hist2.total_count() == 0);
+  }
+}
+
+TEST_CASE("Histogram merge method", "[histogram][merge]") {
+  using Bucketer = LogLinearBucketer<100, 2, 1>;
+
+  SECTION("Merge two empty histograms") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 0);
+    REQUIRE(hist1.data().empty());
+  }
+
+  SECTION("Merge empty histogram into non-empty") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.observe(10, 5);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 5);
+    auto data = hist1.data();
+    REQUIRE(data.size() == 1);
+    REQUIRE(data[0].second == 5);
+  }
+
+  SECTION("Merge non-empty histogram into empty") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist2.observe(10, 5);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 5);
+    auto data = hist1.data();
+    REQUIRE(data.size() == 1);
+    REQUIRE(data[0].first == 10);
+    REQUIRE(data[0].second == 5);
+  }
+
+  SECTION("Merge histograms with observations in same buckets") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.observe(10, 5);
+    hist2.observe(10, 3);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 8);
+    auto data = hist1.data();
+    REQUIRE(data.size() == 1);
+    REQUIRE(data[0].first == 10);
+    REQUIRE(data[0].second == 8);
+  }
+
+  SECTION("Merge histograms with observations in different buckets") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.observe(10, 5);
+    hist2.observe(20, 3);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 8);
+    auto data = hist1.data();
+    REQUIRE(data.size() == 2);
+    REQUIRE(data[0].first == 10);
+    REQUIRE(data[0].second == 5);
+    REQUIRE(data[1].first == 20);
+    REQUIRE(data[1].second == 3);
+  }
+
+  SECTION("Merge histograms with overlapping buckets") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.observe(10, 5);
+    hist1.observe(20, 2);
+
+    hist2.observe(10, 3);
+    hist2.observe(30, 4);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 14);  // 5 + 2 + 3 + 4
+    auto data = hist1.data();
+    REQUIRE(data.size() == 3);
+
+    // Bucket 10: 5 + 3 = 8
+    REQUIRE(data[0].first == 10);
+    REQUIRE(data[0].second == 8);
+
+    // Bucket 20: 2 + 0 = 2
+    REQUIRE(data[1].first == 20);
+    REQUIRE(data[1].second == 2);
+
+    // Bucket 30: 0 + 4 = 4
+    REQUIRE(data[2].first == 28);
+    REQUIRE(data[2].second == 4);
+  }
+
+  SECTION("Merge doesn't modify the source histogram") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    hist1.observe(10, 5);
+    hist2.observe(20, 3);
+
+    hist1.merge(hist2);
+
+    // hist2 should be unchanged
+    REQUIRE(hist2.total_count() == 3);
+    auto data2 = hist2.data();
+    REQUIRE(data2.size() == 1);
+    REQUIRE(data2[0].first == 20);
+    REQUIRE(data2[0].second == 3);
+  }
+
+  SECTION("Multiple merges accumulate correctly") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+    Histogram<Bucketer> hist3;
+
+    hist1.observe(10, 5);
+    hist2.observe(10, 3);
+    hist3.observe(10, 2);
+
+    hist1.merge(hist2);
+    hist1.merge(hist3);
+
+    REQUIRE(hist1.total_count() == 10);
+    auto data = hist1.data();
+    REQUIRE(data.size() == 1);
+    REQUIRE(data[0].second == 10);
+  }
+
+  SECTION("Percentiles work correctly after merge") {
+    Histogram<Bucketer> hist1;
+    Histogram<Bucketer> hist2;
+
+    // hist1: 50 observations at value 10
+    hist1.observe(10, 50);
+
+    // hist2: 50 observations at value 50
+    hist2.observe(50, 50);
+
+    hist1.merge(hist2);
+
+    REQUIRE(hist1.total_count() == 100);
+
+    auto result = hist1.percentiles({0.25, 0.5, 0.75});
+
+    REQUIRE(result.size() == 3);
+    // p25 should be in first bucket (value ~10)
+    REQUIRE(result[0] < 20.0);
+    // p50 should be at the boundary between buckets
+    REQUIRE(result[1] > 10.0);
+    REQUIRE(result[1] < 60.0);
+    // p75 should be in second bucket (value ~50)
+    REQUIRE(result[2] > 40.0);
+  }
+}
