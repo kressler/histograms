@@ -1,14 +1,14 @@
 // Copyright 2025
 // Tests for Histogram
 
-#include "histogram.h"
+#include <histograms/histogram.h>
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <vector>
 
-#include "log_linear_bucketer.h"
+#include <histograms/log_linear_bucketer.h>
 
 using kressler::histograms::Histogram;
 using kressler::histograms::LogLinearBucketer;

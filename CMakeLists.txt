@@ -42,20 +42,19 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         # Aggressive optimizations
         add_compile_options(-O3)
-        add_compile_options(-ffast-math)
         add_compile_options(-funroll-loops)
         add_compile_options(-fno-trapping-math)
         add_compile_options(-flto)
     elseif(MSVC)
         # MSVC optimizations
-        add_compile_options(/O2 /fp:fast)
+        add_compile_options(/O2)
     endif()
 endif()
 
 # Create INTERFACE library for header-only histogram library
 add_library(histograms INTERFACE)
 target_include_directories(histograms INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 target_compile_features(histograms INTERFACE cxx_std_23)
@@ -73,9 +72,10 @@ add_subdirectory(third_party/Catch2)
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 if(CLANG_FORMAT_EXECUTABLE)
     file(GLOB_RECURSE ALL_SOURCE_FILES
-        ${CMAKE_SOURCE_DIR}/src/*.cpp
-        ${CMAKE_SOURCE_DIR}/src/*.hpp
-        ${CMAKE_SOURCE_DIR}/src/*.ipp
+        ${CMAKE_SOURCE_DIR}/include/*.h
+        ${CMAKE_SOURCE_DIR}/include/*.hpp
+        ${CMAKE_SOURCE_DIR}/tests/*.cc
+        ${CMAKE_SOURCE_DIR}/tests/*.cpp
     )
     add_custom_target(
         format
@@ -87,12 +87,15 @@ else()
     message(WARNING "clang-format not found. 'format' target will not be available.")
 endif()
 
-add_subdirectory(src)
+# Only build tests if this is the main project
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    add_subdirectory(tests)
+endif()
 
 # Install headers
 install(FILES
-    src/histogram.h
-    src/log_linear_bucketer.h
+    include/histograms/histogram.h
+    include/histograms/log_linear_bucketer.h
     DESTINATION include/histograms
 )
 
