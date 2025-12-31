@@ -60,7 +60,7 @@ target_include_directories(histograms INTERFACE
 target_compile_features(histograms INTERFACE cxx_std_23)
 
 # Export alias for consistent namespacing
-add_library(histograms::histograms ALIAS histograms)
+add_library(kressler::histograms ALIAS histograms)
 
 # Only build tests and development tools if this is the main project
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -109,7 +109,7 @@ install(TARGETS histograms
 # Install export targets
 install(EXPORT histogramsTargets
     FILE histogramsTargets.cmake
-    NAMESPACE histograms::
+    NAMESPACE kressler::
     DESTINATION lib/cmake/histograms
 )
 
