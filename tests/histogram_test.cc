@@ -1,4 +1,7 @@
-// Copyright 2025
+// Copyright (c) 2025 Bryan Kressler
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 // Tests for Histogram
 
 #include <histograms/histogram.h>

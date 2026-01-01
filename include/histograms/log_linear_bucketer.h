@@ -1,4 +1,7 @@
-// Copyright 2025
+// Copyright (c) 2025 Bryan Kressler
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 // LogLinearBucketer: A histogram bucketer maintaining constant bits of
 // precision for histogram values using a log-linear bucketing scheme.
 

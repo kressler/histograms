@@ -1,4 +1,7 @@
-// Copyright 2025
+// Copyright (c) 2025 Bryan Kressler
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 // Histogram: A helper class for working with bucketers to track value
 // distributions.
 

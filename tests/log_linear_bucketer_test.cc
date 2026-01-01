@@ -1,4 +1,7 @@
-// Copyright 2025
+// Copyright (c) 2025 Bryan Kressler
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 // Tests for LogLinearBucketer
 
 #include <histograms/log_linear_bucketer.h>
