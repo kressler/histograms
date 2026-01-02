@@ -39,8 +39,19 @@ class Histogram {
   }
 
   // Copy constructor - creates a deep copy of another histogram.
-  Histogram(const Histogram& other)
-      : boundaries_(other.boundaries_), data_(other.data_) {}
+  Histogram(const Histogram& other) = default;
+
+  // Copy assignment operator.
+  Histogram& operator=(const Histogram& other) = default;
+
+  // Move constructor.
+  Histogram(Histogram&& other) noexcept = default;
+
+  // Move assignment operator.
+  Histogram& operator=(Histogram&& other) noexcept = default;
+
+  // Destructor.
+  ~Histogram() = default;
 
   // Merges another histogram into this one by summing bucket counts.
   // The histograms must have identical bucketing (same Bucketer type ensures
@@ -80,7 +91,7 @@ class Histogram {
   //
   // Returns:
   //   Vector of pairs where each pair is (bucket_lower_bound, count)
-  std::vector<std::pair<size_t, size_t>> data(
+  [[nodiscard]] std::vector<std::pair<size_t, size_t>> data(
       bool include_empty = false) const {
     std::vector<std::pair<size_t, size_t>> result;
 
@@ -101,7 +112,7 @@ class Histogram {
   }
 
   // Returns the total number of observations across all buckets.
-  size_t total_count() const {
+  [[nodiscard]] size_t total_count() const {
     size_t total = 0;
     for (const size_t count : data_) {
       total += count;
@@ -122,7 +133,7 @@ class Histogram {
   //
   // Example:
   //   auto p = hist.percentiles({0.5, 0.95, 0.99});  // median, p95, p99
-  std::vector<double> percentiles(
+  [[nodiscard]] std::vector<double> percentiles(
       const std::vector<double>& percentiles_input) const {
     std::vector<double> result;
     result.reserve(percentiles_input.size());
@@ -188,7 +199,8 @@ class Histogram {
             static_cast<double>(count_in_bucket);
         const double estimated_value =
             static_cast<double>(lower_bound) +
-            position_in_bucket * static_cast<double>(upper_bound - lower_bound);
+            (position_in_bucket *
+             static_cast<double>(upper_bound - lower_bound));
         result.push_back(estimated_value);
       } else {
         // Last bucket - no upper bound, use max() to represent unbounded
