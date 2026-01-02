@@ -81,3 +81,17 @@ target_link_libraries(log_linear_bucketer_test PRIVATE
   kressler::histograms
 )
 add_test(NAME log_linear_bucketer_test COMMAND log_linear_bucketer_test)
+
+add_executable(linear_bucketer_test linear_bucketer_test.cc)
+target_link_libraries(linear_bucketer_test PRIVATE
+  Catch2::Catch2WithMain
+  kressler::histograms
+)
+add_test(NAME linear_bucketer_test COMMAND linear_bucketer_test)
+
+add_executable(log_bucketer_test log_bucketer_test.cc)
+target_link_libraries(log_bucketer_test PRIVATE
+  Catch2::Catch2WithMain
+  kressler::histograms
+)
+add_test(NAME log_bucketer_test COMMAND log_bucketer_test)
