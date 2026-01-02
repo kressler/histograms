@@ -10,47 +10,39 @@ namespace kressler::histograms {
 //
 // Template parameters:
 //   Buckets: Maximum number of buckets (values clamped to Buckets-1)
-//   Min: Minimum value in scaled space (default: 0)
-//   Scale: Scaling factor applied to values before bucketing (default: 1)
+//   Min: Minimum value in unscaled space (default: 0)
+//   Scale: Bucket width (default: 1)
 //
 // Bucketing scheme:
-//   - Values are scaled: scaled_value = value * Scale
-//   - Bucket i contains scaled values in range [Min + i, Min + i + 1)
+//   - Bucket i contains values in range [Min + i * Scale, Min + (i+1) * Scale)
 //   - Values < Min map to bucket 0
-//   - Values >= Min + Buckets map to bucket Buckets - 1
+//   - Values >= Min + Buckets * Scale map to bucket Buckets - 1
 //
 // Example:
-//   LinearBucketer<10, 0, 1>
-//   - Bucket 0: [0, 1)
-//   - Bucket 1: [1, 2)
+//   LinearBucketer<20, 1000, 10>
+//   - Bucket 0: [1000, 1010)
+//   - Bucket 1: [1010, 1020)
 //   - ...
-//   - Bucket 9: [9, ∞)
+//   - Bucket 19: [1190, ∞)
 template <size_t Buckets, size_t Min = 0, size_t Scale = 1>
 class LinearBucketer {
  public:
   // Returns the bucket index for a given value.
   // Result is clamped to [0, Buckets-1].
   static constexpr size_t bucket(size_t value) noexcept {
-    const size_t scaled = value * Scale;
-    if (scaled < Min) {
+    if (value < Min) {
       return 0;
     }
-    const size_t offset = scaled - Min;
+    const size_t offset = (value - Min) / Scale;
     return std::min(offset, Buckets - 1);
   }
 
-  // Returns the lower boundaries of all buckets (in original value space).
+  // Returns the lower boundaries of all buckets.
   static std::vector<size_t> bucket_boundaries() {
     std::vector<size_t> boundaries;
     boundaries.reserve(Buckets);
     for (size_t i = 0; i < Buckets; ++i) {
-      // Bucket i starts at scaled value (Min + i)
-      // In original space: (Min + i) / Scale
-      // Since we're using integer division, this represents the minimum
-      // value that maps to this bucket
-      const size_t scaled_boundary = Min + i;
-      const size_t boundary = (scaled_boundary + Scale - 1) / Scale;
-      boundaries.push_back(boundary);
+      boundaries.push_back(Min + (i * Scale));
     }
     return boundaries;
   }
