@@ -2,12 +2,12 @@
 
 ![CI](https://github.com/kressler/histograms/workflows/CI/badge.svg)
 
-A high-performance, header-only C++23 library for tracking value distributions using log-linear bucketing.
+A high-performance, header-only C++23 library for tracking value distributions with flexible bucketing strategies.
 
 ## Features
 
-- **Log-Linear Bucketing**: Maintains constant bits of precision across value ranges
-- **Compile-Time Configuration**: Template-based bucketer with configurable bucket count, precision, and scaling
+- **Multiple Bucketing Strategies**: LogLinearBucketer (constant precision), LinearBucketer (fixed-width), LogBucketer (exponential)
+- **Compile-Time Configuration**: Template-based bucketers with configurable bucket count, precision, and scaling
 - **Percentile Estimation**: Compute percentiles (median, p95, p99) with linear interpolation
 - **Header-Only**: Easy integration via CMake INTERFACE library
 - **100% clang-tidy Clean**: Enforced code quality standards
@@ -73,22 +73,55 @@ LogLinearBucketer<22, 2, 1>
 // Boundaries: {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, ...}
 ```
 
+## Available Bucketers
+
+The library provides three bucketing strategies to suit different use cases:
+
+### LogLinearBucketer<Buckets, SignificantBits, Scale>
+Maintains constant bits of precision across value ranges using a two-phase bucketing scheme (linear for small values, log-linear for large values). Best for capturing fine-grained detail at all scales.
+
+**Use when:** You need consistent relative precision across a wide range of values (e.g., latency distributions from microseconds to seconds).
+
+### LinearBucketer<Buckets, Min, Scale>
+Fixed-width buckets with configurable minimum value and bucket width. Bucket i contains values `[Min + i * Scale, Min + (i+1) * Scale)`.
+
+**Use when:** You need equal-width bins over a known range (e.g., temperature readings from 1000-1200°C in 10° increments).
+
+**Example:**
+```cpp
+using Bucketer = LinearBucketer<20, 1000, 10>;  // 20 buckets of width 10 starting at 1000
+```
+
+### LogBucketer<Buckets>
+Pure log₂ bucketing with exponentially-sized buckets. Bucket i (i ≥ 2) contains values `[2^(i-1), 2^i)`.
+
+**Use when:** You need exponential bucketing without the precision control of LogLinearBucketer (simpler, more memory-efficient).
+
+**Example:**
+```cpp
+using Bucketer = LogBucketer<10>;  // Buckets: 0, 1, [2,4), [4,8), [8,16), ...
+```
+
 ## Project Structure
 
 ```
 histograms/
 ├── include/
 │   └── histograms/
-│       ├── histogram.h          # Histogram class template
-│       └── log_linear_bucketer.h # LogLinearBucketer implementation
+│       ├── histogram.h             # Histogram class template
+│       ├── log_linear_bucketer.h   # LogLinearBucketer implementation
+│       ├── linear_bucketer.h       # LinearBucketer implementation
+│       └── log_bucketer.h          # LogBucketer implementation
 ├── tests/
-│   ├── histogram_test.cc        # Histogram tests
-│   └── log_linear_bucketer_test.cc # Bucketer tests
+│   ├── histogram_test.cc           # Histogram tests
+│   ├── log_linear_bucketer_test.cc # LogLinearBucketer tests
+│   ├── linear_bucketer_test.cc     # LinearBucketer tests
+│   └── log_bucketer_test.cc        # LogBucketer tests
 ├── third_party/
-│   └── Catch2/                  # Testing framework (submodule)
-├── hooks/                       # Git hooks (clang-format + clang-tidy)
-├── setup-dev.sh                 # Development environment setup
-└── CMakeLists.txt               # Build configuration
+│   └── Catch2/                     # Testing framework (submodule)
+├── hooks/                          # Git hooks (clang-format + clang-tidy)
+├── setup-dev.sh                    # Development environment setup
+└── CMakeLists.txt                  # Build configuration
 ```
 
 ## Setup
@@ -272,6 +305,34 @@ static constexpr size_t bucket(size_t value) noexcept
 static std::vector<size_t> bucket_boundaries()
   // Returns the lower boundaries of all buckets
   // Vector has at most Buckets elements
+```
+
+### LinearBucketer<Buckets, Min, Scale>
+
+**Static Methods:**
+```cpp
+static constexpr size_t bucket(size_t value) noexcept
+  // Returns the bucket index for a given value
+  // Bucket i contains values [Min + i * Scale, Min + (i+1) * Scale)
+  // Result is clamped to [0, Buckets-1]
+
+static std::vector<size_t> bucket_boundaries()
+  // Returns the lower boundaries of all buckets
+  // Vector has exactly Buckets elements
+```
+
+### LogBucketer<Buckets>
+
+**Static Methods:**
+```cpp
+static constexpr size_t bucket(size_t value) noexcept
+  // Returns the bucket index for a given value using log₂ bucketing
+  // Bucket 0: 0, Bucket 1: 1, Bucket i (i ≥ 2): [2^(i-1), 2^i)
+  // Result is clamped to [0, Buckets-1]
+
+static std::vector<size_t> bucket_boundaries()
+  // Returns the lower boundaries of all buckets
+  // Vector has exactly Buckets elements
 ```
 
 ## Development Workflow
