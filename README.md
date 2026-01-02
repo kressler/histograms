@@ -122,11 +122,11 @@ The `setup-dev.sh` script will:
 
 ```bash
 # Configure and build
-cmake -S . -B build
-cmake --build build --parallel
+cmake -S . -B cmake-build-debug
+cmake --build cmake-build-debug --parallel
 
 # Run tests
-ctest --test-dir build --output-on-failure
+ctest --test-dir cmake-build-debug --output-on-failure
 ```
 
 ### Build Options
@@ -161,14 +161,14 @@ This project uses clang-format for code formatting and clang-tidy for static ana
 
 Format all files:
 ```bash
-cmake --build build --target format
+cmake --build cmake-build-debug --target format
 ```
 
 ### Static Analysis
 
 Run clang-tidy on all production headers:
 ```bash
-cmake --build build --target clang-tidy
+cmake --build cmake-build-debug --target clang-tidy
 ```
 
 Or manually:
@@ -279,7 +279,7 @@ static std::vector<size_t> bucket_boundaries()
 1. Make your changes
 2. Build and test:
    ```bash
-   cmake --build build && ctest --test-dir build
+   cmake --build cmake-build-debug && ctest --test-dir cmake-build-debug
    ```
 3. Commit (pre-commit hook runs automatically):
    ```bash
@@ -294,7 +294,7 @@ static std::vector<size_t> bucket_boundaries()
 - Use C++23 features
 - Write tests for new functionality using Catch2
 - Production code must be clang-tidy clean (enforced in CI and pre-commit)
-- Run `cmake --build build --target format` before submitting PRs
+- Run `cmake --build cmake-build-debug --target format` before submitting PRs
 
 ## License
 
