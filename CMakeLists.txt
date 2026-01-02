@@ -24,6 +24,8 @@ endif()
 install(FILES
     include/histograms/histogram.h
     include/histograms/log_linear_bucketer.h
+    include/histograms/linear_bucketer.h
+    include/histograms/log_bucketer.h
     DESTINATION include/histograms
 )
 
