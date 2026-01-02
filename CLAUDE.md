@@ -41,7 +41,7 @@ Template parameter: `<typename Bucketer>`
   - `data(include_empty=false)` - Returns vector of (boundary, count) pairs
   - `clear()` - Reset all counts
   - `total_count()` - Sum of all observations
-  - `percentiles(vector<double>)` - Linear interpolation, returns infinity for last bucket
+  - `percentiles(vector<double>)` - Linear interpolation, returns max() for last bucket
 
 ## Build & Test
 
@@ -175,7 +175,7 @@ Install destination: `lib/cmake/histograms/`, `include/histograms/`
 4. Linear interpolation between lower and upper bucket boundaries
 5. Special cases:
    - p=0: Find first non-empty bucket
-   - Last bucket: Return `std::numeric_limits<double>::infinity()`
+   - Last bucket: Return `std::numeric_limits<double>::max()`
 
 ### INTERFACE Library Pattern
 - Header-only library uses CMake INTERFACE target
@@ -190,7 +190,7 @@ Install destination: `lib/cmake/histograms/`, `include/histograms/`
 |----|---------|---------------|
 | #2 | LogLinearBucketer | Added boundary tests, made variables const, removed zero checks |
 | #4 | Histogram class | Added include_empty param, removed bounds check in observe() |
-| #5 | Percentiles | Return infinity for last bucket, use linear interpolation |
+| #5 | Percentiles | Return max() for last bucket, use linear interpolation |
 | #6 | CMake export | INTERFACE library, package config, install rules |
 
 ## Common Tasks
@@ -220,7 +220,7 @@ Install destination: `lib/cmake/histograms/`, `include/histograms/`
 - **C++23 requirement**: Consumer projects must use C++23 or later
 - **Scale parameter**: Applied in bucketer, affects bucket boundaries
 - **Clamping**: Values beyond max bucket map to `(Buckets - 1)`, not overflow
-- **Last bucket unbounded**: Histogram doesn't know upper limit, percentiles return infinity
+- **Last bucket unbounded**: Histogram doesn't know upper limit, percentiles return max()
 - **No dynamic allocation in hot path**: All bucket operations are constexpr/inline
 
 ## Performance Notes

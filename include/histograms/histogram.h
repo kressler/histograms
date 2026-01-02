@@ -191,8 +191,8 @@ class Histogram {
             position_in_bucket * static_cast<double>(upper_bound - lower_bound);
         result.push_back(estimated_value);
       } else {
-        // Last bucket - no upper bound, return infinity
-        result.push_back(std::numeric_limits<double>::infinity());
+        // Last bucket - no upper bound, use max() to represent unbounded
+        result.push_back(std::numeric_limits<double>::max());
       }
     }
 

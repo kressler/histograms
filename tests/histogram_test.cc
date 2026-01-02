@@ -570,7 +570,7 @@ TEST_CASE("Histogram percentiles interpolation accuracy",
     REQUIRE(result[0] < 12.0);
   }
 
-  SECTION("Last bucket returns infinity") {
+  SECTION("Last bucket returns max") {
     // Use a bucketer with very few buckets to easily hit the last one
     using SmallBucketer = LogLinearBucketer<10, 2, 1>;
     Histogram<SmallBucketer> small_hist;
@@ -581,13 +581,10 @@ TEST_CASE("Histogram percentiles interpolation accuracy",
     auto result = small_hist.percentiles({0.5, 0.95, 0.99});
 
     REQUIRE(result.size() == 3);
-    // All percentiles fall in the last bucket, so should return infinity
-    REQUIRE(std::isinf(result[0]));
-    REQUIRE(std::isinf(result[1]));
-    REQUIRE(std::isinf(result[2]));
-    REQUIRE(result[0] > 0);  // positive infinity
-    REQUIRE(result[1] > 0);
-    REQUIRE(result[2] > 0);
+    // All percentiles fall in the last bucket, returns max() for unbounded
+    REQUIRE(result[0] == std::numeric_limits<double>::max());
+    REQUIRE(result[1] == std::numeric_limits<double>::max());
+    REQUIRE(result[2] == std::numeric_limits<double>::max());
   }
 }
 
