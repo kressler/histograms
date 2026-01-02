@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-19
+
+      - name: Configure CMake for clang-tidy
+        run: |
+          cmake -S . -B cmake-build-clang-tidy \
+            -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Run clang-tidy on production headers
+        run: |
+          echo "Running clang-tidy on production code..."
+          clang-tidy-19 -p cmake-build-clang-tidy include/histograms/*.h
+
+          # Check exit code
+          if [ $? -ne 0 ]; then
+            echo "❌ clang-tidy found warnings in production code"
+            exit 1
+          fi
+
+          echo "✅ No clang-tidy warnings found"
+
+  build-and-test:
+    name: ${{ matrix.compiler }} - ${{ matrix.build_type }}
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GCC 14 - Debug and Release
+          - compiler: gcc-14
+            cxx_compiler: g++-14
+            build_type: Debug
+
+          - compiler: gcc-14
+            cxx_compiler: g++-14
+            build_type: Release
+
+          # Clang 19 - Release
+          - compiler: clang-19
+            cxx_compiler: clang++-19
+            build_type: Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.cxx_compiler }}
+
+      - name: Cache Catch2
+        uses: actions/cache@v4
+        with:
+          path: third_party/catch2
+          key: catch2-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('.gitmodules') }}
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.compiler }}-${{ matrix.build_type }}
+          path: build/Testing/Temporary/
+          retention-days: 7
