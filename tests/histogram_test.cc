@@ -5,13 +5,12 @@
 // Tests for Histogram
 
 #include <histograms/histogram.h>
+#include <histograms/log_linear_bucketer.h>
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <vector>
-
-#include <histograms/log_linear_bucketer.h>
 
 using kressler::histograms::Histogram;
 using kressler::histograms::LogLinearBucketer;
