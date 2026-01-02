@@ -44,6 +44,13 @@ if(ENABLE_ASAN)
     endif()
 endif()
 
+# Enable -Werror to treat warnings as errors
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Werror)
+elseif(MSVC)
+    add_compile_options(/WX)
+endif()
+
 # Test executables
 add_executable(histogram_test histogram_test.cc)
 target_link_libraries(histogram_test PRIVATE
