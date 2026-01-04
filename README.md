@@ -60,6 +60,9 @@ The `LogLinearBucketer` uses a two-phase bucketing scheme:
 2. **Log-Linear Phase**: Larger values are grouped by precision
    - Each power-of-2 range is subdivided into `2^SignificantBits` buckets
    - Example: bucket(8-9) = 8, bucket(10-11) = 9
+   - This effectively maintains a constant number of bits of precision (i.e., a constant number of "significant figures" in base-2)
+
+The `LogLinearBucketer` is inspired by the [HdrHistogram](https://github.com/HdrHistogram/HdrHistogram_c) library (which also maintains a constant number of digits of precision across a wide range), and my high school chemistry teacher (who thoroughly drummed significant figures into my head).
 
 **Template Parameters:**
 - `Buckets`: Maximum number of buckets (values clamped to Buckets-1)
